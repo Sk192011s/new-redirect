@@ -1,7 +1,10 @@
-// main.ts — Deno Deploy video proxy + KV short link + centered UI frontend with full copy support
+// main.ts — Deno Deploy video proxy + KV short link + token protection + centered UI frontend
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
 const kv = await Deno.openKv();
+
+// Generate a secret token for authorized users
+const SECRET_TOKEN = "YOUR_SECRET_TOKEN"; // 🔹 change to your own secret
 
 addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
@@ -85,7 +88,7 @@ async function handleRequest(req: Request): Promise<Response> {
 </div>
 
 <script>
-const baseProxy = window.location.origin + "/video?src=";
+const baseProxy = window.location.origin + "/video?token=${SECRET_TOKEN}&src=";
 
 function showShortLink(shortUrl) {
   document.getElementById("shortLinkContainer").innerHTML = \`<a href="\${shortUrl}" target="_blank">\${shortUrl}</a>\`;
@@ -141,9 +144,15 @@ document.getElementById("copyShortBtn").onclick = () => {
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
 
-  // 2️⃣ Video proxy
+  // 2️⃣ Video proxy with token validation
   if (url.pathname === "/video") {
     const src = url.searchParams.get("src");
+    const token = url.searchParams.get("token");
+
+    if (!token || token !== SECRET_TOKEN) {
+      return new Response("Forbidden: invalid token", { status: 403 });
+    }
+
     if (!src) return new Response("Missing src", { status: 400 });
     if (!src.startsWith("https://")) return new Response("Invalid src", { status: 400 });
 
