@@ -1,4 +1,4 @@
-// main.ts — Deno Deploy Video Proxy (TypeScript + KV + Token)
+// main.ts — Deno Deploy video proxy (KV link-based, no token)
 import { openKv } from "https://deno.land/x/kv/mod.ts";
 
 const kv = await openKv();
@@ -18,7 +18,7 @@ async function handleRequest(req: Request): Promise<Response> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deno Video Proxy</title>
+<title>Deno Video Proxy (KV-based)</title>
 <style>
 html,body{height:100%;margin:0;overflow:hidden;font-family:sans-serif;background:#f0f2f5;}
 body{display:flex;justify-content:center;align-items:center;}
@@ -31,7 +31,7 @@ a{color:#2196F3;text-decoration:none;font-weight:bold;}
 </head>
 <body>
 <div class="container">
-<h2>Deno Video Proxy Generator (Video-specific Token)</h2>
+<h2>Deno Video Proxy Generator (KV-based)</h2>
 <input type="text" id="videoSrc" placeholder="Enter video URL"><br>
 <button id="generateBtn">Generate Proxy Link</button>
 
@@ -43,17 +43,16 @@ Proxy Link:<br>
 </div>
 
 <script>
-async function generateVideoToken(src){
-  const res = await fetch('/generateToken?src='+encodeURIComponent(src));
-  const token = await res.text();
-  return token;
+async function generateLink(src){
+  const res = await fetch('/generateLink?src='+encodeURIComponent(src));
+  const link = await res.text();
+  return link;
 }
 
 document.getElementById("generateBtn").onclick=async ()=>{
   const src=document.getElementById("videoSrc").value.trim();
   if(!src.startsWith("https://")){alert("Enter valid HTTPS URL");return;}
-  const token=await generateVideoToken(src);
-  const proxyLink=window.location.origin+"/video?token="+token;
+  const proxyLink = await generateLink(src);
   document.getElementById("resultLink").value=proxyLink;
 };
 
@@ -70,23 +69,26 @@ document.getElementById("copyBtn").onclick=()=>{
     return new Response(html,{headers:{"content-type":"text/html; charset=utf-8"}});
   }
 
-  // 2️⃣ Generate video-specific token
-  if(url.pathname==="/generateToken"){
-    const src=url.searchParams.get("src");
+  // 2️⃣ Generate KV-based link
+  if(url.pathname==="/generateLink"){
+    const src = url.searchParams.get("src");
     if(!src || !src.startsWith("https://")) return new Response("Invalid src",{status:400});
-    const token = crypto.randomUUID().replace(/-/g,'').slice(0,16); // random token
-    await kv.set(["videoToken", token], src); // token → video URL mapping
-    return new Response(token, { headers: { "content-type":"text/plain; charset=utf-8" } });
+    // KV entry: src -> src
+    await kv.set(["videoLink", src], src);
+    const proxyLink = `${req.headers.get("origin") || ""}/video?src=${encodeURIComponent(src)}`;
+    return new Response(proxyLink, { headers: { "content-type": "text/plain; charset=utf-8" } });
   }
 
-  // 3️⃣ Video proxy (token-specific)
+  // 3️⃣ Video proxy
   if(url.pathname==="/video"){
-    const token = url.searchParams.get("token");
-    if(!token) return new Response("Forbidden: missing token", {status:403});
-    const kvEntry = await kv.get(["videoToken", token]);
-    if(!kvEntry.value) return new Response("Forbidden: invalid token", {status:403});
-    const src = kvEntry.value;
+    const src = url.searchParams.get("src");
+    if(!src) return new Response("Missing src", {status:400});
 
+    // Check KV
+    const kvEntry = await kv.get(["videoLink", src]);
+    if(!kvEntry.value) return new Response("Forbidden: src not registered", {status:403});
+
+    // Forward request to upstream
     const range = req.headers.get("range") || "";
     const headers: Record<string,string> = {};
     if(range) headers["range"] = range;
