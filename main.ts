@@ -25,9 +25,14 @@ async function handleRequest(req: Request): Promise<Response> {
 <input type="text" id="videoSrc" placeholder="Enter video URL" style="width: 80%;">
 <button id="generateBtn">Generate Proxy Link</button>
 <br><br>
-<input type="text" id="resultLink" style="width: 80%;" readonly>
-<button id="copyBtn">Copy Link</button>
-<button id="shortBtn">Shorten Link</button>
+<div>
+  Proxy Link: <input type="text" id="resultLink" style="width: 60%;" readonly>
+  <button id="copyBtn">Copy</button>
+</div>
+<div style="margin-top:10px;">
+  Short Link: <span id="shortLinkContainer"></span>
+  <button id="shortBtn">Shorten</button>
+</div>
 
 <script>
 const baseProxy = window.location.origin + "/video?src=";
@@ -37,6 +42,7 @@ document.getElementById("generateBtn").onclick = () => {
   if (!src.startsWith("https://")) { alert("Enter a valid HTTPS URL"); return; }
   const proxyLink = baseProxy + encodeURIComponent(src);
   document.getElementById("resultLink").value = proxyLink;
+  document.getElementById("shortLinkContainer").innerHTML = "";
 };
 
 document.getElementById("copyBtn").onclick = () => {
@@ -52,7 +58,7 @@ document.getElementById("shortBtn").onclick = async () => {
   try {
     const res = await fetch('/short?url=' + encodeURIComponent(link));
     const shortUrl = await res.text();
-    document.getElementById("resultLink").value = shortUrl;
+    document.getElementById("shortLinkContainer").innerHTML = \`<a href="\${shortUrl}" target="_blank">\${shortUrl}</a>\`;
   } catch(e) { alert("Shortening failed"); }
 };
 </script>
@@ -105,7 +111,6 @@ document.getElementById("shortBtn").onclick = async () => {
     const kvEntry = await kv.get(["short", hash]);
     if (!kvEntry.value) return new Response("Short link not found", { status: 404 });
 
-    // 302 redirect to original video proxy link
     return Response.redirect(kvEntry.value, 302);
   }
 
