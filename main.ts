@@ -1,7 +1,7 @@
 // main.ts — Deno Deploy video proxy + KV short link + centered UI frontend
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
-const kv = await Deno.openKv(); // Deno KV instance
+const kv = await Deno.openKv();
 
 addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
@@ -20,13 +20,17 @@ async function handleRequest(req: Request): Promise<Response> {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deno Video Proxy Generator</title>
 <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* scroll disabled */
+    font-family: sans-serif;
+    background: #f0f2f5;
+  }
   body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    font-family: sans-serif;
-    background: #f0f2f5;
   }
   .container {
     text-align: center;
@@ -63,6 +67,8 @@ async function handleRequest(req: Request): Promise<Response> {
   <h2>Deno Video Proxy Generator</h2>
   <input type="text" id="videoSrc" placeholder="Enter video URL"><br>
   <button id="generateBtn">Generate Proxy Link</button>
+  <button id="shortDirectBtn">Generate Short Link Only</button>
+
   <div style="margin-top:15px;">
     <div>
       Proxy Link:<br>
@@ -81,6 +87,18 @@ async function handleRequest(req: Request): Promise<Response> {
 <script>
 const baseProxy = window.location.origin + "/video?src=";
 
+function showShortLink(shortUrl) {
+  document.getElementById("shortLinkContainer").innerHTML = \`<a href="\${shortUrl}" target="_blank">\${shortUrl}</a>\`;
+}
+
+async function generateShortLink(url) {
+  try {
+    const res = await fetch('/short?url=' + encodeURIComponent(url));
+    const shortUrl = await res.text();
+    showShortLink(shortUrl);
+  } catch(e) { alert("Shortening failed"); }
+}
+
 document.getElementById("generateBtn").onclick = () => {
   const src = document.getElementById("videoSrc").value.trim();
   if (!src.startsWith("https://")) { alert("Enter a valid HTTPS URL"); return; }
@@ -96,14 +114,17 @@ document.getElementById("copyBtn").onclick = () => {
   alert("Copied proxy link!");
 };
 
-document.getElementById("shortBtn").onclick = async () => {
-  const link = document.getElementById("resultLink").value;
-  if (!link) { alert("Generate link first!"); return; }
-  try {
-    const res = await fetch('/short?url=' + encodeURIComponent(link));
-    const shortUrl = await res.text();
-    document.getElementById("shortLinkContainer").innerHTML = \`<a href="\${shortUrl}" target="_blank">\${shortUrl}</a>\`;
-  } catch(e) { alert("Shortening failed"); }
+document.getElementById("shortBtn").onclick = () => {
+  const proxyLink = document.getElementById("resultLink").value;
+  if (!proxyLink) { alert("Generate proxy link first!"); return; }
+  generateShortLink(proxyLink);
+};
+
+document.getElementById("shortDirectBtn").onclick = () => {
+  const src = document.getElementById("videoSrc").value.trim();
+  if (!src.startsWith("https://")) { alert("Enter a valid HTTPS URL"); return; }
+  const proxyLink = baseProxy + encodeURIComponent(src);
+  generateShortLink(proxyLink);
 };
 
 document.getElementById("copyShortBtn").onclick = () => {
