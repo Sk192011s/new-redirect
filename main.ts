@@ -1,4 +1,4 @@
-// main.ts — Deno Deploy video proxy + KV short link + centered UI frontend
+// main.ts — Deno Deploy video proxy + KV short link + centered UI frontend with full copy support
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
 const kv = await Deno.openKv();
@@ -128,9 +128,10 @@ document.getElementById("shortDirectBtn").onclick = () => {
 };
 
 document.getElementById("copyShortBtn").onclick = () => {
-  const shortLink = document.getElementById("shortLinkContainer").innerText;
-  if (!shortLink) { alert("Generate short link first!"); return; }
-  navigator.clipboard.writeText(shortLink);
+  const shortLinkEl = document.querySelector("#shortLinkContainer a");
+  if (!shortLinkEl) { alert("Generate short link first!"); return; }
+  const fullUrl = shortLinkEl.href; // copy full https://... URL
+  navigator.clipboard.writeText(fullUrl);
   alert("Copied short link!");
 };
 </script>
