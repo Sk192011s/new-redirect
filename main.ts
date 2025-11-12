@@ -1,4 +1,4 @@
-// main.ts — Deno Deploy video proxy + KV short link + frontend
+// main.ts — Deno Deploy video proxy + KV short link + centered UI frontend
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
 const kv = await Deno.openKv(); // Deno KV instance
@@ -19,19 +19,63 @@ async function handleRequest(req: Request): Promise<Response> {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deno Video Proxy Generator</title>
+<style>
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: sans-serif;
+    background: #f0f2f5;
+  }
+  .container {
+    text-align: center;
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    max-width: 500px;
+    width: 90%;
+  }
+  input[type=text] {
+    width: 80%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 12px;
+  }
+  button {
+    padding: 8px 14px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover { background: #45a049; }
+  a { color: #2196F3; text-decoration: none; font-weight: bold; }
+</style>
 </head>
 <body>
-<h2>Deno Video Proxy Link Generator</h2>
-<input type="text" id="videoSrc" placeholder="Enter video URL" style="width: 80%;">
-<button id="generateBtn">Generate Proxy Link</button>
-<br><br>
-<div>
-  Proxy Link: <input type="text" id="resultLink" style="width: 60%;" readonly>
-  <button id="copyBtn">Copy</button>
-</div>
-<div style="margin-top:10px;">
-  Short Link: <span id="shortLinkContainer"></span>
-  <button id="shortBtn">Shorten</button>
+<div class="container">
+  <h2>Deno Video Proxy Generator</h2>
+  <input type="text" id="videoSrc" placeholder="Enter video URL"><br>
+  <button id="generateBtn">Generate Proxy Link</button>
+  <div style="margin-top:15px;">
+    <div>
+      Proxy Link:<br>
+      <input type="text" id="resultLink" readonly>
+      <button id="copyBtn">Copy</button>
+    </div>
+    <div style="margin-top:10px;">
+      Short Link:<br>
+      <span id="shortLinkContainer"></span>
+      <button id="shortBtn">Shorten</button>
+      <button id="copyShortBtn">Copy Short</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -49,7 +93,7 @@ document.getElementById("copyBtn").onclick = () => {
   const link = document.getElementById("resultLink");
   link.select();
   navigator.clipboard.writeText(link.value);
-  alert("Copied!");
+  alert("Copied proxy link!");
 };
 
 document.getElementById("shortBtn").onclick = async () => {
@@ -60,6 +104,13 @@ document.getElementById("shortBtn").onclick = async () => {
     const shortUrl = await res.text();
     document.getElementById("shortLinkContainer").innerHTML = \`<a href="\${shortUrl}" target="_blank">\${shortUrl}</a>\`;
   } catch(e) { alert("Shortening failed"); }
+};
+
+document.getElementById("copyShortBtn").onclick = () => {
+  const shortLink = document.getElementById("shortLinkContainer").innerText;
+  if (!shortLink) { alert("Generate short link first!"); return; }
+  navigator.clipboard.writeText(shortLink);
+  alert("Copied short link!");
 };
 </script>
 </body>
