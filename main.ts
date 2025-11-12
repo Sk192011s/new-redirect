@@ -1,8 +1,6 @@
 // main.ts — Deno Deploy video proxy + video-specific token + KV short link + centered UI
-import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 const kv = await Deno.openKv();
 
-// addEventListener
 addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
 });
@@ -148,7 +146,7 @@ document.getElementById("copyShortBtn").onclick=()=>{
     return new Response(upstream.body,{status:upstream.status,headers:respHeaders});
   }
 
-  // 4️⃣ Short link generation (KV)
+  // 4️⃣ Short link generation
   if(url.pathname==="/short"){
     const fullUrl=url.searchParams.get("url");
     if(!fullUrl) return new Response("Missing url",{status:400});
